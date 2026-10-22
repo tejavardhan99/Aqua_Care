@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-inter: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  
+  body {
+    @apply font-sans antialiased min-h-screen text-slate-900 selection:bg-cyan-500 selection:text-white;
+    margin: 0;
+    padding: 0;
+    background-color: #062a3d;
+  }
+
+  /* Accessible focus ring */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-cyan-400 ring-offset-2 ring-offset-slate-900;
+  }
+}
+
+/* Whole-App Aqua Water Background (CSS + SVG Caustic Layer) */
+.aqua-ambient-bg {
+  min-height: 100vh;
+  position: relative;
+  background: linear-gradient(180deg, #062a3d 0%, #083344 18%, #0e7490 55%, #14b8a6 82%, #cffafe 100%);
+  background-attachment: fixed;
+}
+
+/* Faint Caustic Light Overlay (Pure SVG Pattern Mask) */
+.aqua-caustic-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: 
+    radial-gradient(ellipse at 25% 15%, rgba(34, 211, 238, 0.15) 0%, transparent 45%),
+    radial-gradient(ellipse at 75% 35%, rgba(207, 250, 254, 0.12) 0%, transparent 40%),
+    radial-gradient(ellipse at 45% 70%, rgba(20, 184, 166, 0.14) 0%, transparent 50%);
+  opacity: 0.85;
+  z-index: 0;
+}
+
+/* Simulation Purple Mode Override */
+.aqua-ambient-bg.simulation-mode {
+  background: linear-gradient(180deg, #1e1136 0%, #2e1065 22%, #3b0764 55%, #581c87 82%, #f3e8ff 100%);
+}
+.simulation-mode .aqua-caustic-overlay {
+  background-image: 
+    radial-gradient(ellipse at 25% 15%, rgba(192, 132, 252, 0.18) 0%, transparent 45%),
+    radial-gradient(ellipse at 75% 35%, rgba(168, 85, 247, 0.14) 0%, transparent 40%),
+    radial-gradient(ellipse at 45% 70%, rgba(147, 51, 234, 0.15) 0%, transparent 50%);
+}
+
+/* Frosted Glass Component Styling (21st.dev style) */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 8px 32px 0 rgba(6, 42, 61, 0.1), 0 1px 3px 0 rgba(6, 42, 61, 0.05);
+}
+
+.glass-panel-dark {
+  background: rgba(6, 42, 61, 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(34, 211, 238, 0.22);
+  box-shadow: 0 12px 36px 0 rgba(3, 23, 34, 0.35);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(6, 42, 61, 0.2);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(34, 211, 238, 0.4);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(34, 211, 238, 0.7);
+}
+
+/* Tabular Numbers */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
