@@ -11,11 +11,16 @@ export interface DeviceSensorStatus {
   turbidity: string;
   ammonia: string;
   water_level: string;
+  nitrate?: string;
 }
 
 export interface DeviceFlags {
   aerator_relay: boolean;
   pump_relay: boolean;
+  feeder_relay?: boolean;
+  dosing_relay?: boolean;
+  alarm_active?: boolean;
+  data_ok?: boolean;
   wifi_rssi: number;
   battery_voltage: number;
   uptime_seconds: number;
@@ -33,10 +38,22 @@ export interface TelemetryReading {
   turbidity: number;
   ammonia: number;
   water_level: number;
+  nitrate?: number;
   timestamp?: string;
   received_at?: string;
   is_stale?: boolean;
   device_flags?: DeviceFlags;
+}
+
+export interface MqttStatus {
+  enabled?: boolean;
+  status: string;
+  is_connected: boolean;
+  broker: string;
+  topic: string;
+  packets_received: number;
+  last_packet_time: string | null;
+  last_payload?: any;
 }
 
 export interface RuleCause {
@@ -67,6 +84,7 @@ export interface RuleEvaluationResult {
   timestamp: string;
   is_simulation: boolean;
   summary_message: string;
+  suggestions?: string[];
 }
 
 export interface AlertItem {

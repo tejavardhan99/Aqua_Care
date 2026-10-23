@@ -16,7 +16,7 @@ import { StatusPill } from './StatusPill';
 import type { RiskLevel } from '../types';
 
 interface SensorCardProps {
-  parameterId: 'temperature' | 'dissolved_oxygen' | 'ph' | 'ammonia' | 'turbidity' | 'water_level';
+  parameterId: 'temperature' | 'dissolved_oxygen' | 'ph' | 'ammonia' | 'turbidity' | 'water_level' | 'nitrate';
   name: string;
   value: number | null | undefined;
   unit: string;
@@ -101,6 +101,14 @@ export const SensorCard: React.FC<SensorCardProps> = ({
           tileBg: 'bg-sky-50 text-sky-700 border-sky-200/80',
           sparkColor: '#0ea5e9',
           sparkPoints: [1.3, 1.32, 1.35, 1.34, 1.36, 1.35, 1.35],
+        };
+      case 'nitrate':
+        return {
+          icon: FlaskConical,
+          gradient: 'from-teal-600 to-emerald-600',
+          tileBg: 'bg-teal-50 text-teal-700 border-teal-200/80',
+          sparkColor: '#0d9488',
+          sparkPoints: [4.5, 4.8, 5.1, 4.9, 4.7, 5.0, 4.8],
         };
       default:
         return {

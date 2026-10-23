@@ -19,17 +19,37 @@ import {
   Activity,
   FlaskConical,
   Gauge,
+  Radio,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { api } from '../services/api';
 import { toast } from 'sonner';
 
 export const SettingsPage: React.FC = () => {
-  const { thresholds, currentUser, connection, liveReading } = useApp();
+  const { thresholds, currentUser, connection, liveReading, mqttStatus, refreshMqttStatus } = useApp();
   const flags = liveReading?.device_flags;
 
   // Farmer preferences
   const [pondName, setPondName] = useState('Pond #1 — North Basin');
   const [preferredUnits, setPreferredUnits] = useState('Metric (°C, mg/L, ppm)');
+  const [customTopic, setCustomTopic] = useState(mqttStatus?.topic || 'prawnagent/pond01/state');
+  const [isUpdatingTopic, setIsUpdatingTopic] = useState(false);
+
+  const handleUpdateTopic = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsUpdatingTopic(true);
+      await api.configureMqtt(customTopic);
+      await refreshMqttStatus();
+      toast.success('MQTT Topic updated successfully', {
+        description: `Subscribed to ${customTopic}`,
+      });
+    } catch (err: any) {
+      toast.error('Failed to update MQTT topic', { description: err.message });
+    } finally {
+      setIsUpdatingTopic(false);
+    }
+  };
 
   const handleSavePreferences = (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,6 +204,79 @@ export const SettingsPage: React.FC = () => {
           <span>Boot reason: <code className="text-slate-700 font-mono">{flags?.last_boot_reason || 'POWERON_RESET'}</code></span>
           <span>Edge uptime: <code className="text-slate-700 font-mono">{flags?.uptime_seconds ? formatUptime(flags.uptime_seconds) : '12h 45m'}</code></span>
         </div>
+      </div>
+
+      {/* HiveMQ MQTT Broker Integration Card */}
+      <div className="glass-panel rounded-2xl p-6 shadow-glass">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <Radio className="w-4 h-4 animate-pulse" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Live HiveMQ MQTT Broker Bridge</h2>
+              <p className="text-xs text-slate-500">
+                Direct MQTT pub/sub ingestion channel listening for ESP32 telemetry packets.
+              </p>
+            </div>
+          </div>
+
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            {mqttStatus?.is_connected ? 'HiveMQ Connected' : 'Listening on Broker'}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs mb-4">
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
+            <span className="text-slate-500 block mb-1">Public MQTT Broker</span>
+            <span className="font-mono text-sm font-bold text-slate-900">
+              {mqttStatus?.broker || 'broker.hivemq.com:1883'}
+            </span>
+            <span className="text-[10px] text-slate-400 block mt-0.5">WSS: wss://broker.hivemq.com:8884/mqtt</span>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
+            <span className="text-slate-500 block mb-1">Subscribed State Topic</span>
+            <span className="font-mono text-sm font-bold text-emerald-700">
+              {mqttStatus?.topic || 'prawnagent/pond01/state'}
+            </span>
+            <span className="text-[10px] text-slate-400 block mt-0.5">Physical ESP32 hardware channel</span>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
+            <span className="text-slate-500 block mb-1">Telemetry Packets Streamed</span>
+            <span className="font-mono text-sm font-bold text-cyan-800">
+              {mqttStatus?.packets_received ?? 0} packets
+            </span>
+            <span className="text-[10px] text-slate-400 block mt-0.5">
+              Last packet: {mqttStatus?.last_packet_time ? new Date(mqttStatus.last_packet_time).toLocaleTimeString() : 'Active'}
+            </span>
+          </div>
+        </div>
+
+        {/* Change Topic Form */}
+        <form onSubmit={handleUpdateTopic} className="pt-3 border-t border-slate-100 flex items-center gap-3">
+          <div className="flex-1">
+            <label className="text-[11px] font-semibold text-slate-600 block mb-1">
+              Switch Subscribed MQTT Topic
+            </label>
+            <input
+              type="text"
+              value={customTopic}
+              onChange={(e) => setCustomTopic(e.target.value)}
+              placeholder="prawnagent/pond01/state"
+              className="w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={isUpdatingTopic}
+            className="mt-5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-lg transition-colors shadow-xs"
+          >
+            {isUpdatingTopic ? 'Updating...' : 'Update Topic'}
+          </button>
+        </form>
       </div>
 
       {/* 3. Biological Thresholds (Read-Only View for Farmers) */}
