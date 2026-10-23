@@ -162,9 +162,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const connectWs = () => {
       try {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = window.location.port === '5173' ? 'localhost:8000' : window.location.host;
-        ws = new WebSocket(`${protocol}//${host}/api/telemetry/ws`);
+        let wsUrl: string;
+        const apiBase = api.getBaseUrl();
+        if (apiBase.startsWith('https://')) {
+          wsUrl = `${apiBase.replace('https://', 'wss://')}/api/telemetry/ws`;
+        } else if (apiBase.startsWith('http://')) {
+          wsUrl = `${apiBase.replace('http://', 'ws://')}/api/telemetry/ws`;
+        } else {
+          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+          const host = window.location.port === '5173' ? 'aqua-care-1-s5i8.onrender.com' : window.location.host;
+          wsUrl = `${protocol}//${host}/api/telemetry/ws`;
+        }
+        ws = new WebSocket(wsUrl);
 
         ws.onmessage = (event) => {
           try {

@@ -7,9 +7,10 @@ import type {
   User,
 } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_BASE || '';
+const API_BASE = import.meta.env.VITE_API_BASE || 'https://aqua-care-1-s5i8.onrender.com';
 
 class ApiClient {
+  getBaseUrl(): string { return API_BASE; }
   private token: string | null = null;
 
   constructor() {
