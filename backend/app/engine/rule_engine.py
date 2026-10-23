@@ -12,11 +12,11 @@ from app.engine.thresholds import PrawnPondThresholds, get_current_thresholds
 
 def evaluate_readings(
     temperature: float,
-    ph: float,
-    dissolved_oxygen: float,
-    turbidity: float,
-    ammonia: float,
-    water_level: float,
+    ph: Optional[float] = 7.6,
+    dissolved_oxygen: float = 0.0,
+    turbidity: float = 0.0,
+    ammonia: float = 0.0,
+    water_level: Optional[float] = 1.35,
     is_simulation: bool = False,
     custom_thresholds: Optional[PrawnPondThresholds] = None
 ) -> RuleEvaluationResult:
@@ -25,6 +25,10 @@ def evaluate_readings(
     Used for both live incoming ESP32 telemetry and operator simulation lab.
     Evaluates compound and single-parameter rules against prawn pond thresholds.
     """
+    if ph is None:
+        ph = 7.6
+    if water_level is None:
+        water_level = 1.35
     thresholds = custom_thresholds or get_current_thresholds()
     causes: List[RuleCause] = []
     actions: List[RecommendedAction] = []
@@ -427,26 +431,47 @@ def evaluate_readings(
         ))
 
     # ----------------------------------------------------
-    # 3. OVERALL RISK CALCULATION & SUMMARY
+    # 3. OVERALL RISK CALCULATION, SUGGESTIONS & SUMMARY
     # ----------------------------------------------------
+    suggestions: List[str] = [f"{a.title}: {a.description}" for a in actions]
+
     severities = [c.severity for c in causes]
     if "CRITICAL" in severities:
         overall_risk: RiskLevel = "CRITICAL"
-        summary = "CRITICAL HAZARD: Immediate intervention required to prevent prawn mortality."
+        critical_causes = [c for c in causes if c.severity == "CRITICAL"]
+        if any(c.parameter in ("dissolved_oxygen", "compound:temp_do") for c in critical_causes):
+            summary = "Oxygen is dangerously low! Turn on aerators immediately to protect prawns."
+        elif any(c.parameter in ("ammonia", "compound:nh3_ph") for c in critical_causes):
+            summary = "Toxic ammonia alert! Perform immediate water exchange and stop feeding."
+        elif any(c.parameter == "ph" for c in critical_causes):
+            summary = "Critical pH boundary hazard! Apply agricultural lime buffer immediately."
+        elif any(c.parameter == "water_level" for c in critical_causes):
+            summary = "Critically low pond water level! Start freshwater inlet pump immediately."
+        elif any(c.parameter == "turbidity" for c in critical_causes):
+            summary = "Extreme turbidity overload! Activate settling filters immediately."
+        else:
+            summary = "CRITICAL HAZARD: Immediate intervention required to protect prawns."
     elif "HIGH" in severities:
         overall_risk: RiskLevel = "HIGH"
-        summary = "HIGH RISK: One or more parameters are severely outside acceptable bounds."
+        if actions:
+            summary = f"Warning: {actions[0].title}. Review recommended actions below."
+        else:
+            summary = "Warning: Water quality is drifting out of safe range. Review recommended actions below."
     elif "MEDIUM" in severities:
         overall_risk: RiskLevel = "MEDIUM"
-        summary = "WARNING: Water quality parameters are drifting from optimal prawn conditions."
+        if actions:
+            summary = f"Advisory: {actions[0].title}. Monitor pond conditions closely."
+        else:
+            summary = "Advisory: Minor water quality fluctuations detected. Monitor pond conditions closely."
     else:
         overall_risk: RiskLevel = "LOW"
-        summary = "SAFE: All water quality parameters are within optimal ranges for freshwater prawns."
+        summary = "SAFE: Pond conditions are safe and healthy for freshwater prawns."
 
     return RuleEvaluationResult(
         overall_risk=overall_risk,
         causes=causes,
         recommended_actions=actions,
+        suggestions=suggestions,
         timestamp=datetime.utcnow(),
         is_simulation=is_simulation,
         summary_message=summary

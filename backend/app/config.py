@@ -9,9 +9,9 @@ class Settings(BaseModel):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     
     # ESP32 Communication & Health Check
-    ESP32_REPORT_INTERVAL_SECONDS: int = int(os.getenv("ESP32_INTERVAL", "10"))
-    STALE_THRESHOLD_MULTIPLIER: float = 2.0  # > 2 * interval = STALE
-    DISCONNECTED_THRESHOLD_SECONDS: float = 60.0  # > 60s = DISCONNECTED
+    ESP32_REPORT_INTERVAL_SECONDS: int = int(os.getenv("ESP32_INTERVAL", "5"))
+    STALE_THRESHOLD_MULTIPLIER: float = 2.0  # > 2 * interval = STALE (>10s)
+    DISCONNECTED_THRESHOLD_SECONDS: float = 30.0  # > 30s = DISCONNECTED
     
     # Alert Deduplication / Cooldown
     ALERT_COOLDOWN_SECONDS: int = int(os.getenv("ALERT_COOLDOWN_SECONDS", "600"))  # 10 minutes
@@ -22,5 +22,10 @@ class Settings(BaseModel):
     # Feature Flags: End-user production disables simulation by default
     ENABLE_SIMULATION: bool = os.getenv("ENABLE_SIMULATION", "false").lower() == "true"
 
-settings = Settings()
+    # MQTT HiveMQ Integration
+    MQTT_ENABLED: bool = os.getenv("MQTT_ENABLED", "true").lower() == "true"
+    MQTT_BROKER_HOST: str = os.getenv("MQTT_BROKER_HOST", "broker.hivemq.com")
+    MQTT_BROKER_PORT: int = int(os.getenv("MQTT_BROKER_PORT", "1883"))
+    MQTT_TOPIC: str = os.getenv("MQTT_TOPIC", "prawnagent/pond01/state")
 
+settings = Settings()

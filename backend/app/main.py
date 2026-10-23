@@ -1,9 +1,12 @@
+import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 
 from app.config import settings
-from app.routers import auth, telemetry, rules, alerts, device
+from app.routers import auth, telemetry, rules, alerts, device, mqtt_router
+from app.services.mqtt_service import mqtt_service
+from app.routers.telemetry import broadcast_telemetry
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -11,6 +14,7 @@ app = FastAPI(
     description="AquaCare — Smart Aquaculture Telemetry & Rule Engine for Freshwater Prawn Ponds"
 )
 
+ 
 # Enable CORS for Vite frontend development and production
 app.add_middleware(
     CORSMiddleware,
@@ -26,6 +30,21 @@ app.include_router(telemetry.router)
 app.include_router(rules.router)
 app.include_router(alerts.router)
 app.include_router(device.router)
+app.include_router(mqtt_router.router)
+
+@app.on_event("startup")
+async def startup_event():
+    # Connect MQTT background client to HiveMQ broker
+    try:
+        loop = asyncio.get_running_loop()
+        mqtt_service.set_broadcast_fn(broadcast_telemetry)
+        mqtt_service.start(loop=loop)
+    except Exception as e:
+        print(f"Startup MQTT notice: {e}")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    mqtt_service.stop()
 
 @app.get("/")
 def root():
@@ -43,4 +62,3 @@ def health():
         "status": "up",
         "timestamp": datetime.utcnow().isoformat()
     }
-

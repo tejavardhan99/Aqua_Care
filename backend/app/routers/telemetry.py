@@ -87,6 +87,35 @@ async def ingest_telemetry(
     
     return response_data
 
+@router.post("/mqtt-sync", response_model=Dict[str, Any])
+async def sync_mqtt_telemetry(payload: TelemetryPayload):
+    """
+    Ingests live MQTT packets received from HiveMQ public broker.
+    Evaluates with single source of truth rule engine and alert deduplicator.
+    """
+    record = telemetry_store.add_reading(payload)
+    evaluation = evaluate_readings(
+        temperature=record.temperature,
+        ph=record.ph,
+        dissolved_oxygen=record.dissolved_oxygen,
+        turbidity=record.turbidity,
+        ammonia=record.ammonia,
+        water_level=record.water_level,
+        is_simulation=False
+    )
+    new_alerts = alert_manager.process_evaluation(
+        evaluation=evaluation,
+        pond_id="pond-01",
+        user_id="user-default"
+    )
+    conn_status = telemetry_store.get_connection_status()
+    return {
+        "record": record.dict(),
+        "evaluation": evaluation.dict(),
+        "new_alerts_count": len(new_alerts),
+        "connection": conn_status
+    }
+
 @router.get("/latest")
 def get_latest():
     """

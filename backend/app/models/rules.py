@@ -32,6 +32,7 @@ class RuleEvaluationResult(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     is_simulation: bool = False
     summary_message: str
+    suggestions: List[str] = Field(default_factory=list)
 
 class SimulationEvaluationRequest(BaseModel):
     temperature: float = Field(..., ge=0.0, le=50.0)

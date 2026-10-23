@@ -1,0 +1,26 @@
+
+services:
+  - type: web
+    name: aquacare-backend
+    runtime: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.2
+      - key: DEVICE_API_KEY
+        value: aquacare-device-key-2026
+      - key: MQTT_ENABLED
+        value: "true"
+      - key: MQTT_BROKER_HOST
+        value: broker.hivemq.com
+      - key: MQTT_BROKER_PORT
+        value: "1883"
+      - key: MQTT_TOPIC
+        value: prawnagent/pond01/state
+      - key: ESP32_INTERVAL
+        value: "5"
+      - key: ENABLE_SIMULATION
+        value: "false"
+

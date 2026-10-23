@@ -112,6 +112,7 @@ class TelemetryStore:
             turbidity=payload.turbidity,
             ammonia=payload.ammonia,
             water_level=payload.water_level,
+            nitrate=payload.nitrate,
             device_flags=payload.device_flags or DeviceFlags(),
             timestamp=payload.timestamp or now,
             received_at=now,
