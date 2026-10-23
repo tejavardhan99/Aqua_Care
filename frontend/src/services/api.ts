@@ -86,6 +86,13 @@ class ApiClient {
     return this.request<TelemetryReading[]>(`/api/telemetry/history?range=${range}`);
   }
 
+  async syncMqttTelemetry(payload: any): Promise<any> {
+    return this.request('/api/telemetry/mqtt-sync', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
   // Thresholds Endpoints (Read-only for end-user farmers)
   async getThresholds(): Promise<ThresholdsConfig> {
     return this.request<ThresholdsConfig>('/api/rules/thresholds');
@@ -148,6 +155,18 @@ class ApiClient {
 
   async getNotificationsStatus(): Promise<Record<string, any>> {
     return this.request('/api/device/notifications-status');
+  }
+
+  // MQTT Bridge Endpoints
+  async getMqttStatus(): Promise<any> {
+    return this.request('/api/mqtt/status');
+  }
+
+  async configureMqtt(topic: string): Promise<any> {
+    return this.request('/api/mqtt/configure', {
+      method: 'POST',
+      body: JSON.stringify({ topic }),
+    });
   }
 }
 

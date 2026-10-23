@@ -21,6 +21,7 @@ export const DashboardPage: React.FC = () => {
     liveReading,
     liveEvaluation,
     connection,
+    mqttStatus,
     isLiveLoading,
     refreshLive,
     thresholds,
@@ -62,37 +63,6 @@ export const DashboardPage: React.FC = () => {
     return 'earlier session';
   };
 
-  // Farmer-friendly plain language message generator
-  const getFarmerFriendlySummary = () => {
-    if (isDisconnectedOrStale) {
-      return 'NO LIVE DATA — Status unknown';
-    }
-
-    if (overallRisk === 'CRITICAL') {
-      // Look for specific critical conditions
-      const hasLowDO = liveEvaluation?.causes.some((c) => c.parameter === 'dissolved_oxygen' || c.parameter === 'compound:temp_do');
-      const hasAmmonia = liveEvaluation?.causes.some((c) => c.parameter === 'ammonia' || c.parameter === 'compound:nh3_ph');
-      
-      if (hasLowDO) {
-        return 'Oxygen is dangerously low! Turn on aerators immediately to protect prawns.';
-      }
-      if (hasAmmonia) {
-        return 'Toxic ammonia alert! Perform immediate water exchange and stop feeding.';
-      }
-      return 'Urgent: Water parameters require immediate attention to protect prawns.';
-    }
-
-    if (overallRisk === 'HIGH') {
-      return 'Warning: Water quality is drifting out of safe range. Review recommended actions below.';
-    }
-
-    if (overallRisk === 'MEDIUM') {
-      return 'Advisory: Minor water quality fluctuations detected. Monitor pond conditions closely.';
-    }
-
-    return 'Pond conditions are safe and healthy for freshwater prawns.';
-  };
-
   return (
     <div className="space-y-6">
       {/* 1. Hero Risk Banner (Ocean Wave Animation & Stale State Fix) */}
@@ -121,6 +91,12 @@ export const DashboardPage: React.FC = () => {
                 Live Pond Monitor
               </span>
 
+              {/* HiveMQ Live Stream Indicator */}
+              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-950/70 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>MQTT: {mqttStatus?.topic || 'prawnagent/pond01/state'}</span>
+              </span>
+
               {/* Status pill: if disconnected/stale, shows STALE; otherwise real risk */}
               {isDisconnectedOrStale ? (
                 <StatusPill status="STALE" isStale={true} size="md" />
@@ -136,7 +112,7 @@ export const DashboardPage: React.FC = () => {
               )}
             </div>
 
-            {/* Banner Main Title: BUG FIX 1 -> Must NEVER say "Safe" if stale or disconnected */}
+            {/* Banner Main Title: Rendered directly from backend Rule Engine summary */}
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight text-white drop-shadow-md">
               {isDisconnectedOrStale ? (
                 <span className="text-amber-200 flex items-center gap-2">
@@ -144,11 +120,11 @@ export const DashboardPage: React.FC = () => {
                   NO LIVE DATA — Status unknown
                 </span>
               ) : (
-                getFarmerFriendlySummary()
+                liveEvaluation?.summary_message || 'SAFE: Pond conditions are safe and healthy for freshwater prawns.'
               )}
             </h1>
 
-            {/* Sub-description with species name in proper HTML italics (BUG FIX 3) */}
+            {/* Sub-description & Direct Backend Suggestions */}
             <div className="text-xs sm:text-sm text-slate-200 leading-relaxed font-medium">
               {isDisconnectedOrStale ? (
                 <p className="bg-black/30 p-2.5 rounded-xl border border-amber-500/30 text-amber-100">
@@ -160,13 +136,35 @@ export const DashboardPage: React.FC = () => {
                   . Telemetry has stopped arriving from ESP32 edge node. Check pond power and edge WiFi.
                 </p>
               ) : (
-                <p>
-                  Target aquaculture species:{' '}
-                  <strong className="text-cyan-300 font-bold">
-                    Giant Freshwater Prawn (<em>Macrobrachium rosenbergii</em>)
-                  </strong>
-                  . Continuous biological water quality monitoring from pond sensors.
-                </p>
+                <div className="space-y-2.5">
+                  <p>
+                    Target aquaculture species:{' '}
+                    <strong className="text-cyan-300 font-bold">
+                      Giant Freshwater Prawn (<em>Macrobrachium rosenbergii</em>)
+                    </strong>
+                    . Continuous biological water quality monitoring from pond sensors.
+                  </p>
+
+                  {/* Backend Direct Suggestions */}
+                  {liveEvaluation?.recommended_actions && liveEvaluation.recommended_actions.length > 0 && (
+                    <div className="p-3 rounded-xl bg-black/40 border border-white/20 backdrop-blur-xs text-xs space-y-1.5 shadow-inner">
+                      <div className="flex items-center gap-2 font-bold text-amber-300 uppercase tracking-wider text-[11px]">
+                        <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                        <span>Backend Automated Suggestions ({liveEvaluation.recommended_actions.length}):</span>
+                      </div>
+                      <ul className="space-y-1">
+                        {liveEvaluation.recommended_actions.map((act) => (
+                          <li key={act.action_id} className="text-slate-100 flex items-start gap-1.5">
+                            <span className="text-cyan-400 font-bold">•</span>
+                            <span>
+                              <strong className="text-white">{act.title}:</strong> {act.description}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -320,6 +318,25 @@ export const DashboardPage: React.FC = () => {
             safeMin={thresholds?.water_level.min_safe ?? 1.1}
             safeMax={thresholds?.water_level.max_safe ?? 1.6}
           />
+
+          {/* Nitrate (Direct ESP32 Telemetry) */}
+          {liveReading?.nitrate !== undefined && liveReading?.nitrate !== null && (
+            <SensorCard
+              parameterId="nitrate"
+              name="Nitrate (NO3)"
+              value={liveReading?.nitrate}
+              unit="mg/L"
+              status={liveReading.nitrate > 20.0 ? 'HIGH' : 'LOW'}
+              optimalRange="< 10.0 mg/L"
+              isStale={isDisconnectedOrStale}
+              isReporting={true}
+              trend="steady"
+              minScale={0}
+              maxScale={30}
+              safeMin={0}
+              safeMax={10}
+            />
+          )}
         </div>
       </div>
 
