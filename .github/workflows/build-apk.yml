@@ -29,14 +29,13 @@ jobs:
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: 'temurin'
           java-version: 17
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
 
       - name: Build APK with Gradle
         working-directory: frontend/android
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
         run: |
           chmod +x ./gradlew
           ./gradlew assembleDebug --stacktrace
